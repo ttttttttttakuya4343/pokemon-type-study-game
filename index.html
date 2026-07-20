@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#273d87" />
+    <meta name="description" content="5さいからあそべる ポケモンタイプあいしょうゲーム" />
+    <title>タイプ！タッチ！</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css?v=5" />
+  </head>
+  <body>
+    <div class="sky" aria-hidden="true"><span></span><span></span><span></span></div>
+    <main class="app-shell">
+      <header class="topbar">
+        <button class="icon-button hidden" id="backButton" aria-label="もどる">←</button>
+        <div class="brand" aria-label="タイプ タッチ">
+          <span class="brand-small">ポケモンと まなぼう！</span>
+          <span class="brand-main">タイプ！<em>タッチ！</em></span>
+        </div>
+        <button class="icon-button" id="soundButton" aria-label="おとの オン オフ" aria-pressed="true">♪</button>
+      </header>
+
+      <section class="screen home-screen active" id="homeScreen">
+        <div class="hero-card">
+          <div class="hero-copy">
+            <span class="eyebrow">5さいから あそべる</span>
+            <h1>どの タイプで<br /><strong>たたかう？</strong></h1>
+            <p>あいてを みて、<br />ばつぐんの タイプを タッチ！</p>
+          </div>
+          <div class="hero-monster" aria-hidden="true">
+            <div class="monster-halo"></div>
+            <div class="monster"><i class="ear left"></i><i class="ear right"></i><b class="eye left"></b><b class="eye right"></b><span class="mouth"></span></div>
+            <div class="type-float fire">ほのお</div>
+            <div class="type-float water">みず</div>
+            <div class="type-float leaf">くさ</div>
+          </div>
+        </div>
+
+        <div class="progress-card">
+          <div><span class="small-label">これまでの きろく</span><strong id="bestRecord">まだ ないよ</strong></div>
+          <div class="star-row" id="homeStars" aria-label="ほし 0こ">☆ ☆ ☆</div>
+        </div>
+
+        <div class="mode-grid">
+          <button class="mode-button practice" data-mode="practice">
+            <span class="mode-icon">◎</span>
+            <span><small>じかんは むせいげん</small><strong>ゆっくり れんしゅう</strong><em>10・15・20もんから えらべる</em></span>
+            <b>▶</b>
+          </button>
+          <button class="mode-button speed" data-mode="speed">
+            <span class="mode-icon">⚡</span>
+            <span><small>めざせ！ そくせんりょく</small><strong>3びょう バトル</strong><em>すばやく えらんで 10もん</em></span>
+            <b>▶</b>
+          </button>
+          <button class="mode-button guide" id="guideButton">
+            <span class="mode-icon">▦</span>
+            <span><small>わすれたら ここ！</small><strong>タイプ ずかん</strong><em>ばつぐんを しらべよう</em></span>
+            <b>▶</b>
+          </button>
+        </div>
+      </section>
+
+      <section class="screen practice-count-screen" id="practiceCountScreen">
+        <div class="practice-count-heading">
+          <span class="eyebrow">ゆっくり れんしゅう</span>
+          <h2>なんもん やる？</h2>
+          <p>すきな かずを えらんでね</p>
+        </div>
+        <div class="practice-choice-grid">
+          <button class="practice-choice ten" data-practice-total="10"><span>はじめて</span><strong>10</strong><em>もん</em></button>
+          <button class="practice-choice fifteen" data-practice-total="15"><span>たっぷり</span><strong>15</strong><em>もん</em></button>
+          <button class="practice-choice twenty" data-practice-total="20"><span>チャレンジ</span><strong>20</strong><em>もん</em></button>
+        </div>
+      </section>
+
+      <section class="screen battle-screen" id="battleScreen">
+        <div class="battle-meta">
+          <div class="question-count"><span id="modeName">れんしゅう</span><strong><b id="questionNumber">1</b> / <span id="questionTotal">10</span></strong></div>
+          <div class="score-pips" id="scorePips"></div>
+        </div>
+
+        <div class="timer-wrap hidden" id="timerWrap" aria-label="のこりじかん"><div id="timerBar"></div></div>
+
+        <div class="encounter-card" id="encounterCard">
+          <span class="versus-label">あいてが あらわれた！</span>
+          <div class="enemy-stage">
+            <div class="enemy-ring"></div>
+            <img class="pokemon-art" id="pokemonImage" src="" alt="" />
+            <div class="enemy-mon" id="enemyMon" aria-hidden="true"><i></i><b class="eye left"></b><b class="eye right"></b><span></span></div>
+            <div class="impact" id="impact">ばつぐん！</div>
+          </div>
+          <h2 id="pokemonName">ヒトカゲ</h2>
+          <div class="defender-types" id="defenderTypes"></div>
+          <p class="question">どの タイプで たたかう？</p>
+        </div>
+
+        <div class="answers" id="answers"></div>
+        <div class="hint-row" id="hintRow"><span>ヒント</span><p id="hintText">みずは ほのおを けすよ！</p></div>
+        <button class="speak-button" id="speakButton">♪ もんだいを よむ</button>
+      </section>
+
+      <section class="screen result-screen" id="resultScreen">
+        <div class="result-burst" aria-hidden="true">✦</div>
+        <span class="eyebrow">バトル おわり！</span>
+        <h2 id="resultTitle">すごい！</h2>
+        <div class="big-score"><strong id="resultScore">8</strong><span id="resultTotal">/ 8もん</span></div>
+        <div class="result-stars" id="resultStars">★ ★ ★</div>
+        <p id="resultMessage">タイプはかせに ちかづいたね！</p>
+        <div class="result-actions">
+          <button class="primary-action" id="retryButton">もう いっかい！</button>
+          <button class="secondary-action" id="homeButton">おうちへ</button>
+        </div>
+      </section>
+
+      <section class="screen guide-screen" id="guideScreen">
+        <div class="guide-heading">
+          <span class="eyebrow">タイプ ずかん</span>
+          <h2>あいての タイプを えらんでね</h2>
+          <p>ばつぐんの タイプが わかるよ！</p>
+        </div>
+        <div class="type-picker" id="typePicker"></div>
+        <div class="guide-answer hidden" id="guideAnswer">
+          <span class="guide-vs">この タイプの あいてには…</span>
+          <div class="selected-type" id="selectedType"></div>
+          <span class="down-arrow">↓</span>
+          <strong>これが ばつぐん！</strong>
+          <div class="strong-types" id="strongTypes"></div>
+        </div>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js?v=12"></script>
+  </body>
+</html>
