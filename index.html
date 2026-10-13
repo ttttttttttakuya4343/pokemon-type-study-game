@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=9" />
+    <link rel="stylesheet" href="styles.css?v=11" />
   </head>
   <body>
     <div class="sky" aria-hidden="true"><span></span><span></span><span></span></div>
@@ -137,9 +137,11 @@
           </div>
           <h3 id="capturePokemonName"></h3>
           <div class="defender-types" id="capturePokemonTypes"></div>
-          <p id="captureMessage">ボタンを おして ボールを なげよう！</p>
+          <p id="captureMessage">ボールを えらんで なげよう！</p>
         </div>
-        <button class="primary-action capture-action" id="throwBallButton">● ボールを なげる！</button>
+        <p class="capture-reward" id="captureReward"></p>
+        <p class="capture-tip">●が おおいほど つかまえやすいよ！</p>
+        <div class="capture-ball-picker" id="captureBallPicker" aria-label="ボールを えらぶ"></div>
         <button class="secondary-action capture-result-button hidden" id="captureResultButton">けっかを みる ▶</button>
       </section>
 
@@ -149,6 +151,7 @@
           <h2>ポケモン コレクション</h2>
           <p id="collectionCount">0ひき あつめたよ！</p>
           <div class="candy-count">あめ <strong id="candyCount">0</strong>こ</div>
+          <div class="collection-ball-inventory" id="collectionBallInventory"></div>
         </div>
         <p class="collection-empty" id="collectionEmpty">バトルがおわると<br />ポケモンが なかまになるよ！</p>
         <div class="collection-grid" id="collectionGrid"></div>
@@ -172,6 +175,6 @@
     </main>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="app.js?v=20"></script>
+    <script src="app.js?v=22"></script>
   </body>
 </html>

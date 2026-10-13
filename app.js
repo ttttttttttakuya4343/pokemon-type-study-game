@@ -105,6 +105,13 @@ let state = { mode:"practice", index:0, total:8, score:0, results:[], current:nu
 let soundOn = localStorage.getItem("typeTouchSound") !== "off";
 const safariSpeechNeedsGesture = navigator.vendor === "Apple Computer, Inc.";
 let activeSpeechFinish = null;
+const BALLS = {
+  pokeball: {name:"モンスターボール", chance:.50, strength:2, color:"#e94f54"},
+  superball: {name:"スーパーボール", chance:.75, strength:3, color:"#438bc5"},
+  hyperball: {name:"ハイパーボール", chance:.90, strength:4, color:"#42424b"},
+  masterball: {name:"マスターボール", chance:1, strength:4, color:"#ad69ba", guaranteed:true}
+};
+const STARTING_BALLS = {pokeball:3,superball:0,hyperball:0,masterball:0};
 
 function typeChip(key) {
   const t = TYPES[key];
@@ -123,6 +130,27 @@ function storedNames(key) {
     const value=JSON.parse(localStorage.getItem(key)||"[]");
     return Array.isArray(value)?value.filter(name=>POKEMON.some(p=>p.name===name)):[];
   } catch { return []; }
+}
+function getBallInventory(){
+  try{
+    const stored=localStorage.getItem("typeTouchBalls");
+    if(!stored)return {...STARTING_BALLS};
+    const parsed=JSON.parse(stored);
+    return Object.fromEntries(Object.keys(BALLS).map(key=>[key,Math.max(0,Math.floor(Number(parsed?.[key])||0))]));
+  }catch{return {...STARTING_BALLS}}
+}
+function saveBallInventory(inventory){localStorage.setItem("typeTouchBalls",JSON.stringify(inventory))}
+function rewardBalls(){
+  const inventory=getBallInventory();
+  inventory.pokeball+=2;
+  const roll=Math.random();
+  let bonus=null;
+  if(roll<.01)bonus="masterball";
+  else if(roll<.09)bonus="hyperball";
+  else if(roll<.34)bonus="superball";
+  if(bonus)inventory[bonus]++;
+  saveBallInventory(inventory);
+  return bonus?`ごほうび！ モンスターボール 2こ と ${BALLS[bonus].name}！`:`ごほうび！ モンスターボールを 2こ もらったよ！`;
 }
 function buildQuestionQueue(total) {
   const reviewNames=storedNames("typeTouchReview");
@@ -297,15 +325,16 @@ function finishGame(){
   state.capturePokemon=(newFriends.length?shuffle(newFriends):shuffle(candidates))[0];
   state.captureResolved=false;
   const pokemon=state.capturePokemon;
+  $("captureReward").textContent=rewardBalls();
   $("capturePokemonName").textContent=pokemon.name;
   $("capturePokemonTypes").innerHTML=pokemon.types.map(typeChip).join("");
-  $("captureMessage").textContent="ボタンを おして ボールを なげよう！";
+  $("captureMessage").textContent="ボールを えらんで なげよう！";
   $("capturePokemonImage").alt=`${pokemon.name}の え`;
   $("capturePokemonImage").src=`assets/pokemon/${pokemon.image}`;
-  $("captureStage").classList.remove("throwing","caught");
-  $("throwBallButton").classList.remove("hidden");
-  $("throwBallButton").disabled=false;
+  $("captureStage").classList.remove("throwing","caught","missed");
+  $("captureBallPicker").classList.remove("hidden");
   $("captureResultButton").classList.add("hidden");
+  renderCaptureBallPicker();
   renderHomeProgress();showScreen("captureScreen");
 }
 function renderHomeProgress(){const best=Number(localStorage.getItem("typeTouchBest")||0);$("bestRecord").textContent=best?`さいこう ${best}つぼし`:`まだ ないよ`;$("homeStars").textContent="★ ".repeat(best)+"☆ ".repeat(3-best);$("homeStars").setAttribute("aria-label",`ほし ${best}こ`)}
@@ -317,30 +346,63 @@ function openCollection(){
   const pokemon=names.map(name=>POKEMON.find(item=>item.name===name)).filter(Boolean);
   $("collectionCount").textContent=`${pokemon.length}ひき あつめたよ！`;
   $("candyCount").textContent=String(Math.max(0,Number(localStorage.getItem("typeTouchCandy")||0)));
+  renderBallInventory("collectionBallInventory");
   $("collectionEmpty").classList.toggle("hidden",pokemon.length>0);
   $("collectionGrid").innerHTML=pokemon.map(item=>`<article class="collection-item"><img src="assets/pokemon/${item.image}" alt="" loading="lazy" /><strong>${item.name}</strong><div>${item.types.map(typeChip).join("")}</div></article>`).join("");
   showScreen("collectionScreen");
 }
-async function throwCaptureBall(){
-  if(state.captureResolved||$("throwBallButton").disabled)return;
+function renderBallInventory(targetId){
+  const inventory=getBallInventory();
+  $(targetId).innerHTML=Object.entries(BALLS).map(([key,ball])=>`<span class="inventory-ball"><i class="ball-icon ball-icon-${key}"><b></b></i><strong>${ball.name}</strong><small>${inventory[key]}こ</small></span>`).join("");
+}
+function renderCaptureBallPicker(){
+  const inventory=getBallInventory();
+  $("captureBallPicker").innerHTML=Object.entries(BALLS).map(([key,ball])=>{
+    const count=inventory[key];
+    const strength=ball.guaranteed?"かならず！":"●".repeat(ball.strength)+"○".repeat(4-ball.strength);
+    return `<button class="ball-choice" data-ball="${key}" style="--ball-color:${ball.color}" ${count?"":"disabled"} aria-label="${ball.name}、${count}こ、つかまりやすさ ${ball.guaranteed?"かならず":""+Math.round(ball.chance*100)+"パーセント"}"><i class="ball-icon ball-icon-${key}" aria-hidden="true"><b></b></i><strong>${ball.name}</strong><span class="ball-strength">${strength}</span><small>${count}こ</small></button>`;
+  }).join("");
+  [...$("captureBallPicker").children].forEach(button=>button.addEventListener("click",()=>throwCaptureBall(button.dataset.ball)));
+}
+async function throwCaptureBall(ballKey){
+  if(state.captureResolved||!BALLS[ballKey])return;
+  const inventory=getBallInventory();
+  if(inventory[ballKey]<1)return;
   const currentGame=state;
-  $("throwBallButton").disabled=true;
+  inventory[ballKey]--;
+  saveBallInventory(inventory);
+  [...$("captureBallPicker").children].forEach(button=>button.disabled=true);
   $("captureStage").classList.add("throwing");
+  $("captureStage").classList.remove("caught","missed");
+  $("captureStage").style.setProperty("--capture-ball-color",BALLS[ballKey].color);
   const pokemon=state.capturePokemon;
-  const announcement=say(`モンスターボール！ ${pokemon.name}を つかまえた！`);
+  const caught=BALLS[ballKey].guaranteed||Math.random()<BALLS[ballKey].chance;
+  const announcement=say(`${BALLS[ballKey].name}！ ${caught?`${pokemon.name}を つかまえた！`:"あっ！ とびだした！ べつの ボールで もういっかい！"}`);
   await Promise.all([announcement,new Promise(resolve=>setTimeout(resolve,1900))]);
   if(state!==currentGame||!$("captureScreen").classList.contains("active"))return;
+  $("captureStage").classList.remove("throwing");
+  if(!caught){
+    $("captureStage").classList.add("missed");
+    const left=Object.values(inventory).reduce((total,count)=>total+count,0);
+    $("captureMessage").textContent=left?"あっ！ とびだした！ べつの ボールを ためそう！":"とびだしちゃった！ つぎは つかまえよう！";
+    if(left){renderCaptureBallPicker();renderBallInventory("collectionBallInventory");}
+    else{
+      state.captureResolved=true;
+      $("captureBallPicker").replaceChildren();
+      $("captureResultButton").classList.remove("hidden");
+    }
+    return;
+  }
   const names=storedNames("typeTouchCollection");
   const alreadyCaught=names.includes(pokemon.name);
   if(!alreadyCaught){names.push(pokemon.name);localStorage.setItem("typeTouchCollection",JSON.stringify(names));}
   else localStorage.setItem("typeTouchCandy",String(Math.max(0,Number(localStorage.getItem("typeTouchCandy")||0))+1));
   state.captureResolved=true;
-  $("captureStage").classList.remove("throwing");
   $("captureStage").classList.add("caught");
   $("captureMessage").textContent=alreadyCaught?"もう なかまだけど、あめを 1こ ゲット！":"やったー！ あたらしい なかまだよ！";
-  $("throwBallButton").classList.add("hidden");
+  $("captureBallPicker").classList.add("hidden");
   $("captureResultButton").classList.remove("hidden");
-  renderHomeProgress();renderCollectionSummary();
+  renderHomeProgress();renderCollectionSummary();renderBallInventory("collectionBallInventory");
 }
 function showResult(){
   if(!state.captureResolved)return;
@@ -358,7 +420,7 @@ function goHome(){clearTimer();stopSpeech();showScreen("homeScreen")}
 
 document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>b.dataset.mode==="practice"?openPracticeCount():startGame(b.dataset.mode)));
 document.querySelectorAll("[data-practice-total]").forEach(b=>b.addEventListener("click",()=>startGame("practice",Number(b.dataset.practiceTotal))));
-$("guideButton").addEventListener("click",openGuide);$("collectionButton").addEventListener("click",openCollection);$("throwBallButton").addEventListener("click",throwCaptureBall);$("captureResultButton").addEventListener("click",showResult);$("backButton").addEventListener("click",goHome);$("homeButton").addEventListener("click",goHome);$("retryButton").addEventListener("click",()=>startGame(state.mode,state.total));
+$("guideButton").addEventListener("click",openGuide);$("collectionButton").addEventListener("click",openCollection);$("captureResultButton").addEventListener("click",showResult);$("backButton").addEventListener("click",goHome);$("homeButton").addEventListener("click",goHome);$("retryButton").addEventListener("click",()=>startGame(state.mode,state.total));
 $("speakButton").addEventListener("click",()=>{const p=state.current?.pokemon;if(p)say(state.mode==="team"?`${p.name}。${p.types.map(t=>TYPES[t].name).join("と")}タイプ。てもちから えらぼう！`:`${p.name}。${p.types.map(t=>TYPES[t].name).join("と")}タイプ。どの タイプで たたかう？`)});
 $("soundButton").addEventListener("click",()=>{soundOn=!soundOn;localStorage.setItem("typeTouchSound",soundOn?"on":"off");$("soundButton").textContent=soundOn?"♪":"×";$("soundButton").setAttribute("aria-pressed",String(soundOn));if(!soundOn)stopSpeech();const toast=$("toast");toast.textContent=soundOn?"おと オン":"おと オフ";toast.classList.add("show");setTimeout(()=>toast.classList.remove("show"),1000)});
 $("soundButton").textContent=soundOn?"♪":"×";renderHomeProgress();renderCollectionSummary();
