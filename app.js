@@ -177,22 +177,30 @@ function beep(correct) {
   osc.start(); osc.stop(ctx.currentTime+.3);
 }
 function makeQuestion(pokemon) {
+  if(state.mode==="team"){
+    const strong=POKEMON.filter(candidate=>candidate.name!==pokemon.name&&candidate.types.some(type=>effect(type,pokemon.types)>1));
+    const answer=strong[Math.floor(Math.random()*strong.length)];
+    const distractors=shuffle(POKEMON.filter(candidate=>candidate.name!==answer.name&&candidate.types.every(type=>effect(type,pokemon.types)<=1))).slice(0,2);
+    const options=shuffle([answer,...distractors]);
+    return {pokemon,answer:answer.name,answerLabel:`${answer.name}の ${answer.types.map(t=>TYPES[t].name).join("・")}タイプ`,options};
+  }
   const wins = winningTypes(pokemon.types);
   const preferred=pokemon.practiceAnswer||PRACTICE_ANSWERS[pokemon.types[0]];
   const practiceAnswer=effect(preferred,pokemon.types)>1?preferred:wins[0];
   const answer = state.mode === "practice" ? practiceAnswer : wins[Math.floor(Math.random()*wins.length)];
   const distractors = shuffle(nonWinningTypes(pokemon.types)).slice(0,2);
-  return { pokemon, answer, options:shuffle([answer,...distractors]) };
+  return { pokemon, answer, answerLabel:`${TYPES[answer].name}タイプ`, options:shuffle([answer,...distractors]) };
 }
 function startGame(mode,requestedTotal) {
   clearTimer();
-  const total=mode==="speed"?10:[10,15,20].includes(Number(requestedTotal))?Number(requestedTotal):10;
+  const total=mode==="speed"||mode==="team"?10:[10,15,20].includes(Number(requestedTotal))?Number(requestedTotal):10;
   const {selected,reviewNames}=buildQuestionQueue(total);
   state = {mode,index:0,total,score:0,results:[],current:null,timer:null,deadline:0,locked:false,queue:selected,reviewNames};
-  $("modeName").textContent = mode==="speed"?"3びょう バトル":"ゆっくり れんしゅう";
+  $("modeName").textContent = mode==="speed"?"3びょう バトル":mode==="team"?"チーム バトル":"ゆっくり れんしゅう";
   $("questionTotal").textContent=state.total;
   $("timerWrap").classList.toggle("hidden",mode!=="speed");
   $("hintRow").classList.toggle("hidden",mode!=="practice");
+  $("battlePrompt").textContent=mode==="team"?"てもちから えらぼう！":"どの タイプで たたかう？";
   showScreen("battleScreen"); nextQuestion();
 }
 function nextQuestion() {
@@ -212,10 +220,14 @@ function nextQuestion() {
   $("pokemonImage").onerror=()=>stage.classList.remove("has-art");
   $("pokemonImage").src=`assets/pokemon/${pokemon.image}`;
   $("answers").className="answers";
-  $("answers").innerHTML=options.map(key=>`<button class="answer-button" data-type="${key}" style="--type-color:${TYPES[key].color}"><span class="answer-symbol">${TYPES[key].symbol}</span>${TYPES[key].name}</button>`).join("");
-  [...$("answers").children].forEach(btn=>btn.addEventListener("click",()=>choose(btn.dataset.type,btn)));
+  if(state.mode==="team"){
+    $("answers").innerHTML=options.map(candidate=>`<button class="answer-button team-answer-button" data-choice="${candidate.name}" style="--type-color:${TYPES[candidate.types[0]].color}"><img class="team-answer-art" src="assets/pokemon/${candidate.image}" alt="" /><strong>${candidate.name}</strong><span class="team-answer-types">${candidate.types.map(t=>TYPES[t].name).join("・")}</span></button>`).join("");
+  }else{
+    $("answers").innerHTML=options.map(key=>`<button class="answer-button" data-choice="${key}" style="--type-color:${TYPES[key].color}"><span class="answer-symbol">${TYPES[key].symbol}</span>${TYPES[key].name}</button>`).join("");
+  }
+  [...$("answers").children].forEach(btn=>btn.addEventListener("click",()=>choose(btn.dataset.choice,btn)));
   updatePips();
-  say(`${pokemon.name}。${pokemon.types.map(t=>TYPES[t].name).join("と")}タイプ。どの タイプで たたかう？`);
+  say(state.mode==="team"?`${pokemon.name}。${pokemon.types.map(t=>TYPES[t].name).join("と")}タイプ。てもちから えらぼう！`:`${pokemon.name}。${pokemon.types.map(t=>TYPES[t].name).join("と")}タイプ。どの タイプで たたかう？`);
   if(state.mode==="speed") startTimer();
 }
 async function choose(type,button,timeout=false) {
@@ -224,12 +236,12 @@ async function choose(type,button,timeout=false) {
   if(correct)state.score++;
   state.results.push({pokemon:state.current.pokemon,correct});
   $("answers").classList.add("locked");
-  [...$("answers").children].forEach(btn=>{btn.disabled=true;if(btn.dataset.type===state.current.answer)btn.classList.add("correct")});
+  [...$("answers").children].forEach(btn=>{btn.disabled=true;if(btn.dataset.choice===String(state.current.answer))btn.classList.add("correct")});
   if(button&&!correct)button.classList.add("wrong");
   $("impact").textContent=correct?"ばつぐん！":timeout?"じかん！":"おしい！";
   $("impact").classList.remove("show"); void $("impact").offsetWidth; $("impact").classList.add("show");
   beep(correct);
-  const feedback=correct?"ばつぐん！ せいかい！":`おしい！ こたえは ${TYPES[state.current.answer].name}タイプ`;
+  const feedback=correct?`ばつぐん！ せいかい！ ${state.current.answerLabel}`:`おしい！ こたえは ${state.current.answerLabel}`;
   const currentGame=state;
   state.index++; updatePips();
   await Promise.all([
@@ -270,6 +282,6 @@ function goHome(){clearTimer();stopSpeech();showScreen("homeScreen")}
 document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>b.dataset.mode==="practice"?openPracticeCount():startGame(b.dataset.mode)));
 document.querySelectorAll("[data-practice-total]").forEach(b=>b.addEventListener("click",()=>startGame("practice",Number(b.dataset.practiceTotal))));
 $("guideButton").addEventListener("click",openGuide);$("backButton").addEventListener("click",goHome);$("homeButton").addEventListener("click",goHome);$("retryButton").addEventListener("click",()=>startGame(state.mode,state.total));
-$("speakButton").addEventListener("click",()=>{const p=state.current?.pokemon;if(p)say(`${p.name}。${p.types.map(t=>TYPES[t].name).join("と")}タイプ。どの タイプで たたかう？`)});
+$("speakButton").addEventListener("click",()=>{const p=state.current?.pokemon;if(p)say(state.mode==="team"?`${p.name}。${p.types.map(t=>TYPES[t].name).join("と")}タイプ。てもちから えらぼう！`:`${p.name}。${p.types.map(t=>TYPES[t].name).join("と")}タイプ。どの タイプで たたかう？`)});
 $("soundButton").addEventListener("click",()=>{soundOn=!soundOn;localStorage.setItem("typeTouchSound",soundOn?"on":"off");$("soundButton").textContent=soundOn?"♪":"×";$("soundButton").setAttribute("aria-pressed",String(soundOn));if(!soundOn)stopSpeech();const toast=$("toast");toast.textContent=soundOn?"おと オン":"おと オフ";toast.classList.add("show");setTimeout(()=>toast.classList.remove("show"),1000)});
 $("soundButton").textContent=soundOn?"♪":"×";renderHomeProgress();

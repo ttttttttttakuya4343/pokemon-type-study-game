@@ -55,6 +55,11 @@
             <span><small>めざせ！ そくせんりょく</small><strong>3びょう バトル</strong><em>すばやく えらんで 10もん</em></span>
             <b>▶</b>
           </button>
+          <button class="mode-button team" data-mode="team">
+            <span class="mode-icon">★</span>
+            <span><small>てもちから えらぼう</small><strong>チーム バトル</strong><em>あいてに つよい ポケモンは？</em></span>
+            <b>▶</b>
+          </button>
           <button class="mode-button guide" id="guideButton">
             <span class="mode-icon">▦</span>
             <span><small>わすれたら ここ！</small><strong>タイプ ずかん</strong><em>ばつぐんを しらべよう</em></span>
@@ -94,7 +99,7 @@
           </div>
           <h2 id="pokemonName">ヒトカゲ</h2>
           <div class="defender-types" id="defenderTypes"></div>
-          <p class="question">どの タイプで たたかう？</p>
+          <p class="question" id="battlePrompt">どの タイプで たたかう？</p>
         </div>
 
         <div class="answers" id="answers"></div>
@@ -133,6 +138,6 @@
     </main>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="app.js?v=12"></script>
+    <script src="app.js?v=13"></script>
   </body>
 </html>
