@@ -259,10 +259,8 @@ async function choose(type,button,timeout=false) {
   const feedback=correct?`ばつぐん！ せいかい！ ${state.current.answerLabel}。${reasonText}`:`${timeout?"じかん！":"おしい！"} こたえは ${state.current.answerLabel}。${reasonText}`;
   const currentGame=state;
   state.index++; updatePips();
-  await Promise.all([
-    say(feedback),
-    new Promise(resolve=>setTimeout(resolve,correct?900:1400))
-  ]);
+  await say(feedback);
+  await new Promise(resolve=>setTimeout(resolve,1800));
   if(state===currentGame&&$("battleScreen").classList.contains("active"))nextQuestion();
 }
 function updatePips(){ $("scorePips").innerHTML=Array.from({length:state.total},(_,i)=>`<i class="${state.results[i]?(state.results[i].correct?"correct":"wrong"):""}"></i>`).join(""); }
