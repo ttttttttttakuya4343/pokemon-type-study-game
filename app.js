@@ -263,7 +263,15 @@ async function choose(type,button,timeout=false) {
   state.index++; updatePips();
   await say(feedback);
   await new Promise(resolve=>setTimeout(resolve,1800));
-  if(state===currentGame&&$("battleScreen").classList.contains("active"))nextQuestion();
+  if(state===currentGame&&$("battleScreen").classList.contains("active")){
+    if(state.mode==="team"){
+      const nextButton=document.createElement("button");
+      nextButton.className="reason-next";
+      nextButton.textContent="つぎの もんだいへ ▶";
+      nextButton.addEventListener("click",()=>{if(state===currentGame&&$("battleScreen").classList.contains("active"))nextQuestion();},{once:true});
+      $("answerReason").append(nextButton);
+    }else nextQuestion();
+  }
 }
 function updatePips(){ $("scorePips").innerHTML=Array.from({length:state.total},(_,i)=>`<i class="${state.results[i]?(state.results[i].correct?"correct":"wrong"):""}"></i>`).join(""); }
 function startTimer(){
