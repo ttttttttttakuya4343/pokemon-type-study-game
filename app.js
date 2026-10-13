@@ -103,6 +103,7 @@ const $ = (id) => document.getElementById(id);
 const screens = ["homeScreen","practiceCountScreen","battleScreen","resultScreen","guideScreen"];
 let state = { mode:"practice", index:0, total:8, score:0, results:[], current:null, timer:null, deadline:0, locked:false, queue:[], reviewNames:[] };
 let soundOn = localStorage.getItem("typeTouchSound") !== "off";
+const safariSpeechNeedsGesture = navigator.vendor === "Apple Computer, Inc.";
 let activeSpeechFinish = null;
 
 function typeChip(key) {
@@ -264,7 +265,7 @@ async function choose(type,button,timeout=false) {
   await say(feedback);
   await new Promise(resolve=>setTimeout(resolve,1800));
   if(state===currentGame&&$("battleScreen").classList.contains("active")){
-    if(state.mode==="team"){
+    if(state.mode==="team"||safariSpeechNeedsGesture){
       const nextButton=document.createElement("button");
       nextButton.className="reason-next";
       nextButton.textContent="つぎの もんだいへ ▶";
