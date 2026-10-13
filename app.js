@@ -206,6 +206,8 @@ function startGame(mode,requestedTotal) {
 function nextQuestion() {
   if(state.index>=state.total){finishGame();return;}
   state.locked=false; state.current=makeQuestion(state.queue[state.index]);
+  $("answerReason").classList.add("hidden");
+  $("answerReason").replaceChildren();
   const {pokemon,answer,options}=state.current;
   $("questionNumber").textContent=state.index+1;
   $("pokemonName").textContent=pokemon.name;
@@ -233,6 +235,15 @@ function nextQuestion() {
 async function choose(type,button,timeout=false) {
   if(state.locked)return; state.locked=true; clearTimer();
   const correct=type===state.current.answer;
+  const answerPokemon=state.mode==="team"?POKEMON.find(candidate=>candidate.name===state.current.answer):null;
+  const attackType=state.mode==="team"
+    ?answerPokemon.types.find(candidateType=>effect(candidateType,state.current.pokemon.types)>1)
+    :state.current.answer;
+  const defenderType=state.current.pokemon.types.find(candidateType=>(CHART[attackType][candidateType]??1)>1);
+  const reasonText=`${TYPES[attackType].name}は ${TYPES[defenderType].name}に ばつぐん！`;
+  const reason=$("answerReason");
+  reason.innerHTML=`<div class="reason-matchup"><span class="reason-type" style="--type-color:${TYPES[attackType].color}">${TYPES[attackType].symbol} ${TYPES[attackType].name}</span><span class="reason-arrow" aria-hidden="true">➡</span><span class="reason-type" style="--type-color:${TYPES[defenderType].color}">${TYPES[defenderType].symbol} ${TYPES[defenderType].name}</span></div><strong>${reasonText}</strong>`;
+  reason.classList.remove("hidden");
   if(correct)state.score++;
   state.results.push({pokemon:state.current.pokemon,correct});
   $("answers").classList.add("locked");
@@ -241,7 +252,7 @@ async function choose(type,button,timeout=false) {
   $("impact").textContent=correct?"ばつぐん！":timeout?"じかん！":"おしい！";
   $("impact").classList.remove("show"); void $("impact").offsetWidth; $("impact").classList.add("show");
   beep(correct);
-  const feedback=correct?`ばつぐん！ せいかい！ ${state.current.answerLabel}`:`おしい！ こたえは ${state.current.answerLabel}`;
+  const feedback=correct?`ばつぐん！ せいかい！ ${state.current.answerLabel}。${reasonText}`:`${timeout?"じかん！":"おしい！"} こたえは ${state.current.answerLabel}。${reasonText}`;
   const currentGame=state;
   state.index++; updatePips();
   await Promise.all([
