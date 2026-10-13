@@ -151,6 +151,7 @@ function say(text) {
   return new Promise(resolve=>{
     if(!soundOn||!("speechSynthesis" in window)){resolve();return;}
     stopSpeech();
+    speechSynthesis.resume();
     const utterance=new SpeechSynthesisUtterance(text);
     utterance.lang="ja-JP";utterance.rate=.82;utterance.pitch=1.15;
     let finished=false;
@@ -243,8 +244,10 @@ async function choose(type,button,timeout=false) {
     :state.current.answer;
   const defenderType=state.current.pokemon.types.find(candidateType=>(CHART[attackType][candidateType]??1)>1);
   const reasonText=`${TYPES[attackType].name}は ${TYPES[defenderType].name}に ばつぐん！`;
+  const feedback=correct?`ばつぐん！ せいかい！ ${state.current.answerLabel}。${reasonText}`:`${timeout?"じかん！":"おしい！"} こたえは ${state.current.answerLabel}。${reasonText}`;
   const reason=$("answerReason");
-  reason.innerHTML=`<div class="reason-matchup"><span class="reason-type" style="--type-color:${TYPES[attackType].color}">${TYPES[attackType].symbol} ${TYPES[attackType].name}</span><span class="reason-arrow" aria-hidden="true">➡</span><span class="reason-type" style="--type-color:${TYPES[defenderType].color}">${TYPES[defenderType].symbol} ${TYPES[defenderType].name}</span></div><strong>${reasonText}</strong>`;
+  reason.innerHTML=`<div class="reason-matchup"><span class="reason-type" style="--type-color:${TYPES[attackType].color}">${TYPES[attackType].symbol} ${TYPES[attackType].name}</span><span class="reason-arrow" aria-hidden="true">➡</span><span class="reason-type" style="--type-color:${TYPES[defenderType].color}">${TYPES[defenderType].symbol} ${TYPES[defenderType].name}</span><button class="reason-speak" id="reasonSpeakButton" aria-label="せつめいを もういちど きく">♪</button></div><strong>${reasonText}</strong>`;
+  $("reasonSpeakButton").addEventListener("click",()=>say(feedback));
   reason.classList.remove("hidden");
   $("hintRow").classList.add("hidden");
   $("speakButton").classList.add("hidden");
@@ -256,7 +259,6 @@ async function choose(type,button,timeout=false) {
   $("impact").textContent=correct?"ばつぐん！":timeout?"じかん！":"おしい！";
   $("impact").classList.remove("show"); void $("impact").offsetWidth; $("impact").classList.add("show");
   beep(correct);
-  const feedback=correct?`ばつぐん！ せいかい！ ${state.current.answerLabel}。${reasonText}`:`${timeout?"じかん！":"おしい！"} こたえは ${state.current.answerLabel}。${reasonText}`;
   const currentGame=state;
   state.index++; updatePips();
   await say(feedback);
