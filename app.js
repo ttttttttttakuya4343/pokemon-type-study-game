@@ -100,7 +100,7 @@ const PRACTICE_ANSWERS = {
 };
 
 const $ = (id) => document.getElementById(id);
-const screens = ["homeScreen","practiceCountScreen","battleScreen","resultScreen","guideScreen"];
+const screens = ["homeScreen","practiceCountScreen","battleScreen","captureScreen","resultScreen","collectionScreen","guideScreen"];
 let state = { mode:"practice", index:0, total:8, score:0, results:[], current:null, timer:null, deadline:0, locked:false, queue:[], reviewNames:[] };
 let soundOn = localStorage.getItem("typeTouchSound") !== "off";
 const safariSpeechNeedsGesture = navigator.vendor === "Apple Computer, Inc.";
@@ -141,7 +141,7 @@ function buildQuestionQueue(total) {
 }
 function showScreen(id) {
   screens.forEach(s => $(s).classList.toggle("active",s === id));
-  $("backButton").classList.toggle("hidden",id === "homeScreen");
+  $("backButton").classList.toggle("hidden",id === "homeScreen"||id === "captureScreen");
   window.scrollTo({top:0,behavior:"smooth"});
 }
 function stopSpeech() {
@@ -290,10 +290,63 @@ function finishGame(){
   const review=new Set(state.reviewNames);
   state.results.forEach(({pokemon,correct})=>correct?review.delete(pokemon.name):review.add(pokemon.name));
   localStorage.setItem("typeTouchReview",JSON.stringify([...review]));
-  const best=Math.max(Number(localStorage.getItem("typeTouchBest")||0),stars);localStorage.setItem("typeTouchBest",best);renderHomeProgress();showScreen("resultScreen");say(`${state.score}もん せいかい！ ${$("resultTitle").textContent}`);
+  const best=Math.max(Number(localStorage.getItem("typeTouchBest")||0),stars);localStorage.setItem("typeTouchBest",best);
+  const caught=new Set(storedNames("typeTouchCollection"));
+  const candidates=[...new Map(state.results.map(result=>[result.pokemon.name,result.pokemon])).values()];
+  const newFriends=candidates.filter(pokemon=>!caught.has(pokemon.name));
+  state.capturePokemon=(newFriends.length?shuffle(newFriends):shuffle(candidates))[0];
+  state.captureResolved=false;
+  const pokemon=state.capturePokemon;
+  $("capturePokemonName").textContent=pokemon.name;
+  $("capturePokemonTypes").innerHTML=pokemon.types.map(typeChip).join("");
+  $("captureMessage").textContent="ボタンを おして ボールを なげよう！";
+  $("capturePokemonImage").alt=`${pokemon.name}の え`;
+  $("capturePokemonImage").src=`assets/pokemon/${pokemon.image}`;
+  $("captureStage").classList.remove("throwing","caught");
+  $("throwBallButton").classList.remove("hidden");
+  $("throwBallButton").disabled=false;
+  $("captureResultButton").classList.add("hidden");
+  renderHomeProgress();showScreen("captureScreen");
 }
 function renderHomeProgress(){const best=Number(localStorage.getItem("typeTouchBest")||0);$("bestRecord").textContent=best?`さいこう ${best}つぼし`:`まだ ないよ`;$("homeStars").textContent="★ ".repeat(best)+"☆ ".repeat(3-best);$("homeStars").setAttribute("aria-label",`ほし ${best}こ`)}
+function renderCollectionSummary(){$("collectionSummary").textContent=`${storedNames("typeTouchCollection").length}ひき なかまにしたよ`}
 function openPracticeCount(){clearTimer();stopSpeech();showScreen("practiceCountScreen")}
+function openCollection(){
+  clearTimer();stopSpeech();
+  const names=storedNames("typeTouchCollection");
+  const pokemon=names.map(name=>POKEMON.find(item=>item.name===name)).filter(Boolean);
+  $("collectionCount").textContent=`${pokemon.length}ひき あつめたよ！`;
+  $("candyCount").textContent=String(Math.max(0,Number(localStorage.getItem("typeTouchCandy")||0)));
+  $("collectionEmpty").classList.toggle("hidden",pokemon.length>0);
+  $("collectionGrid").innerHTML=pokemon.map(item=>`<article class="collection-item"><img src="assets/pokemon/${item.image}" alt="" loading="lazy" /><strong>${item.name}</strong><div>${item.types.map(typeChip).join("")}</div></article>`).join("");
+  showScreen("collectionScreen");
+}
+async function throwCaptureBall(){
+  if(state.captureResolved||$("throwBallButton").disabled)return;
+  const currentGame=state;
+  $("throwBallButton").disabled=true;
+  $("captureStage").classList.add("throwing");
+  const pokemon=state.capturePokemon;
+  const announcement=say(`モンスターボール！ ${pokemon.name}を つかまえた！`);
+  await Promise.all([announcement,new Promise(resolve=>setTimeout(resolve,1900))]);
+  if(state!==currentGame||!$("captureScreen").classList.contains("active"))return;
+  const names=storedNames("typeTouchCollection");
+  const alreadyCaught=names.includes(pokemon.name);
+  if(!alreadyCaught){names.push(pokemon.name);localStorage.setItem("typeTouchCollection",JSON.stringify(names));}
+  else localStorage.setItem("typeTouchCandy",String(Math.max(0,Number(localStorage.getItem("typeTouchCandy")||0))+1));
+  state.captureResolved=true;
+  $("captureStage").classList.remove("throwing");
+  $("captureStage").classList.add("caught");
+  $("captureMessage").textContent=alreadyCaught?"もう なかまだけど、あめを 1こ ゲット！":"やったー！ あたらしい なかまだよ！";
+  $("throwBallButton").classList.add("hidden");
+  $("captureResultButton").classList.remove("hidden");
+  renderHomeProgress();renderCollectionSummary();
+}
+function showResult(){
+  if(!state.captureResolved)return;
+  showScreen("resultScreen");
+  say(`${state.score}もん せいかい！ ${$("resultTitle").textContent}`);
+}
 function openGuide(){
   clearTimer();showScreen("guideScreen");
   $("typePicker").innerHTML=Object.entries(TYPES).map(([key,t])=>`<button class="pick-type" data-type="${key}" style="--type-color:${t.color}"><span>${t.symbol}</span>${t.name}</button>`).join("");
@@ -305,7 +358,7 @@ function goHome(){clearTimer();stopSpeech();showScreen("homeScreen")}
 
 document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>b.dataset.mode==="practice"?openPracticeCount():startGame(b.dataset.mode)));
 document.querySelectorAll("[data-practice-total]").forEach(b=>b.addEventListener("click",()=>startGame("practice",Number(b.dataset.practiceTotal))));
-$("guideButton").addEventListener("click",openGuide);$("backButton").addEventListener("click",goHome);$("homeButton").addEventListener("click",goHome);$("retryButton").addEventListener("click",()=>startGame(state.mode,state.total));
+$("guideButton").addEventListener("click",openGuide);$("collectionButton").addEventListener("click",openCollection);$("throwBallButton").addEventListener("click",throwCaptureBall);$("captureResultButton").addEventListener("click",showResult);$("backButton").addEventListener("click",goHome);$("homeButton").addEventListener("click",goHome);$("retryButton").addEventListener("click",()=>startGame(state.mode,state.total));
 $("speakButton").addEventListener("click",()=>{const p=state.current?.pokemon;if(p)say(state.mode==="team"?`${p.name}。${p.types.map(t=>TYPES[t].name).join("と")}タイプ。てもちから えらぼう！`:`${p.name}。${p.types.map(t=>TYPES[t].name).join("と")}タイプ。どの タイプで たたかう？`)});
 $("soundButton").addEventListener("click",()=>{soundOn=!soundOn;localStorage.setItem("typeTouchSound",soundOn?"on":"off");$("soundButton").textContent=soundOn?"♪":"×";$("soundButton").setAttribute("aria-pressed",String(soundOn));if(!soundOn)stopSpeech();const toast=$("toast");toast.textContent=soundOn?"おと オン":"おと オフ";toast.classList.add("show");setTimeout(()=>toast.classList.remove("show"),1000)});
-$("soundButton").textContent=soundOn?"♪":"×";renderHomeProgress();
+$("soundButton").textContent=soundOn?"♪":"×";renderHomeProgress();renderCollectionSummary();

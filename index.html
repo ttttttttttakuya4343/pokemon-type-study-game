@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=8" />
+    <link rel="stylesheet" href="styles.css?v=9" />
   </head>
   <body>
     <div class="sky" aria-hidden="true"><span></span><span></span><span></span></div>
@@ -63,6 +63,11 @@
           <button class="mode-button guide" id="guideButton">
             <span class="mode-icon">▦</span>
             <span><small>わすれたら ここ！</small><strong>タイプ ずかん</strong><em>ばつぐんを しらべよう</em></span>
+            <b>▶</b>
+          </button>
+          <button class="mode-button collection" id="collectionButton">
+            <span class="mode-icon">●</span>
+            <span><small id="collectionSummary">なかまを あつめよう</small><strong>ポケモン コレクション</strong><em>つかまえた ポケモンを みる</em></span>
             <b>▶</b>
           </button>
         </div>
@@ -121,6 +126,34 @@
         </div>
       </section>
 
+      <section class="screen capture-screen" id="captureScreen">
+        <span class="eyebrow">ぜんもん おつかれさま！</span>
+        <h2>ポケモンを<br /><strong>つかまえよう！</strong></h2>
+        <div class="capture-card">
+          <div class="capture-stage" id="captureStage">
+            <div class="capture-sparkles" aria-hidden="true">✦　✧　✦</div>
+            <img id="capturePokemonImage" src="" alt="" />
+            <span class="capture-ball" id="captureBall" aria-hidden="true"><i></i></span>
+          </div>
+          <h3 id="capturePokemonName"></h3>
+          <div class="defender-types" id="capturePokemonTypes"></div>
+          <p id="captureMessage">ボタンを おして ボールを なげよう！</p>
+        </div>
+        <button class="primary-action capture-action" id="throwBallButton">● ボールを なげる！</button>
+        <button class="secondary-action capture-result-button hidden" id="captureResultButton">けっかを みる ▶</button>
+      </section>
+
+      <section class="screen collection-screen" id="collectionScreen">
+        <div class="collection-heading">
+          <span class="eyebrow">つかまえた なかまたち</span>
+          <h2>ポケモン コレクション</h2>
+          <p id="collectionCount">0ひき あつめたよ！</p>
+          <div class="candy-count">あめ <strong id="candyCount">0</strong>こ</div>
+        </div>
+        <p class="collection-empty" id="collectionEmpty">バトルがおわると<br />ポケモンが なかまになるよ！</p>
+        <div class="collection-grid" id="collectionGrid"></div>
+      </section>
+
       <section class="screen guide-screen" id="guideScreen">
         <div class="guide-heading">
           <span class="eyebrow">タイプ ずかん</span>
@@ -139,6 +172,6 @@
     </main>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="app.js?v=19"></script>
+    <script src="app.js?v=20"></script>
   </body>
 </html>
