@@ -208,6 +208,8 @@ function nextQuestion() {
   state.locked=false; state.current=makeQuestion(state.queue[state.index]);
   $("answerReason").classList.add("hidden");
   $("answerReason").replaceChildren();
+  $("hintRow").classList.toggle("hidden",state.mode!=="practice");
+  $("speakButton").classList.remove("hidden");
   const {pokemon,answer,options}=state.current;
   $("questionNumber").textContent=state.index+1;
   $("pokemonName").textContent=pokemon.name;
@@ -244,6 +246,8 @@ async function choose(type,button,timeout=false) {
   const reason=$("answerReason");
   reason.innerHTML=`<div class="reason-matchup"><span class="reason-type" style="--type-color:${TYPES[attackType].color}">${TYPES[attackType].symbol} ${TYPES[attackType].name}</span><span class="reason-arrow" aria-hidden="true">➡</span><span class="reason-type" style="--type-color:${TYPES[defenderType].color}">${TYPES[defenderType].symbol} ${TYPES[defenderType].name}</span></div><strong>${reasonText}</strong>`;
   reason.classList.remove("hidden");
+  $("hintRow").classList.add("hidden");
+  $("speakButton").classList.add("hidden");
   if(correct)state.score++;
   state.results.push({pokemon:state.current.pokemon,correct});
   $("answers").classList.add("locked");
